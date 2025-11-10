@@ -1,0 +1,305 @@
+{
+  "intents": [
+    {
+      "tag": "greeting",
+      "patterns": [
+        "Hi",
+        "Hello",
+        "Hey",
+        "Good day",
+        "Howdy",
+        "Yo",
+        "Hi there",
+        "Hey there",
+        "Greetings",
+        "What's up",
+        "Whats up",
+        "Sup",
+        "How are you",
+        "How's it going",
+        "How are ya",
+        "Anyone here?",
+        "Is anyone there?",
+        "Good morning",
+        "Good afternoon",
+        "Good evening"
+      ],
+      "responses": [
+        "Hello!",
+        "Good to see you again!",
+        "Hi there, how can I help?",
+        "Hey! What can I do for you?",
+        "Hi! Fire away with your question."
+      ]
+    },
+    {
+      "tag": "goodbye",
+      "patterns": [
+        "Goodbye",
+        "Bye",
+        "See you later",
+        "See ya",
+        "cya",
+        "ciao",
+        "cao",
+        "I'm leaving",
+        "I am Leaving",
+        "Got to go",
+        "Talk later",
+        "Catch you later",
+        "Have a good day",
+        "Have a Good day",
+        "Thanks, bye",
+        "Bye for now"
+      ],
+      "responses": [
+        "Sad to see you go :(",
+        "Talk to you later",
+        "Goodbye!",
+        "Catch you later!",
+        "See you soon!"
+      ]
+    },
+    {
+      "tag": "programming",
+      "patterns": [
+        "What is progamming?",
+        "What is programming?",
+        "What is coding?",
+        "Tell me about programming",
+        "Tell me about coding",
+        "What is software development?",
+        "Explain programming",
+        "Define coding",
+        "What do programmers do?",
+        "Why learn to code?",
+        "How does coding work?",
+        "What's a programming language?",
+        "Is programming hard?",
+        "What does software engineering mean?"
+      ],
+      "responses": [
+        "Programming, coding or software development, means writing computer code to automate tasks.",
+        "Coding is the process of giving computers step-by-step instructions to solve problems.",
+        "Software development is using programming languages, tools, and processes to build applications."
+      ]
+    },
+    {
+      "tag": "resource",
+      "patterns": [
+        "Where can I learn to code?",
+        "Best way to learn to code",
+        "How can I learn programming",
+        "Good programming resources",
+        "Can you recommend good coding resources?",
+        "How do I start coding?",
+        "Beginner resources for Python",
+        "Best YouTube channels for programming",
+        "Good books for learning to code",
+        "Free coding courses",
+        "Where to practice coding problems",
+        "Websites to learn Python",
+        "How to get better at algorithms",
+        "Resources for data structures"
+      ],
+      "responses": [
+        "Check out the NeuralNine YouTube channel and The Python Bible series (7 in 1).",
+        "Try freeCodeCamp, Coursera, and the official Python docs for a solid start.",
+        "Practice on LeetCode or HackerRank; follow up with 'Automate the Boring Stuff with Python'."
+      ]
+    },
+    {
+      "tag": "stocks",
+      "patterns": [
+        "What are my stocks?",
+        "Which stocks do I own?",
+        "Show my stock portfolio",
+        "Display my holdings",
+        "List my equities",
+        "What does my portfolio look like?",
+        "Portfolio overview",
+        "Open my stock list",
+        "My investments please",
+        "Do I have any tech stocks?"
+      ],
+      "responses": [
+        "Here are your stocks!",
+        "Pulling up your portfolio now.",
+        "Here's the latest view of your holdings."
+      ]
+    },
+    {
+      "tag": "thanks",
+      "patterns": [
+        "Thanks",
+        "Thank you",
+        "Thx",
+        "Much appreciated",
+        "Thanks a lot",
+        "Cheers",
+        "I appreciate it",
+        "Many thanks",
+        "Thanks, that helps",
+        "Great, thanks"
+      ],
+      "responses": [
+        "You're welcome!",
+        "Happy to help 😊",
+        "Anytime!",
+        "Glad it helped!"
+      ]
+    },
+    {
+      "tag": "affirm",
+      "patterns": [
+        "Yes",
+        "Yup",
+        "Yeah",
+        "Sure",
+        "Absolutely",
+        "Please do",
+        "Sounds good",
+        "Correct",
+        "That's right",
+        "Do it"
+      ],
+      "responses": [
+        "Great!",
+        "Awesome — proceeding.",
+        "Got it 👍"
+      ]
+    },
+    {
+      "tag": "deny",
+      "patterns": [
+        "No",
+        "Nope",
+        "Nah",
+        "Don't",
+        "Stop",
+        "Not really",
+        "That's not right",
+        "I don't think so",
+        "Cancel it",
+        "Leave it"
+      ],
+      "responses": [
+        "No problem.",
+        "Okay, I won't.",
+        "Understood — I’ll hold off."
+      ]
+    },
+    {
+      "tag": "bot_name",
+      "patterns": [
+        "What's your name?",
+        "Who are you?",
+        "What should I call you?",
+        "Do you have a name?",
+        "Your name?"
+      ],
+      "responses": [
+        "I'm your assistant. You can call me ChatBot.",
+        "You can call me ChatBot — here to help!"
+      ]
+    },
+    {
+      "tag": "capabilities",
+      "patterns": [
+        "What can you do?",
+        "How can you help me?",
+        "What are your features?",
+        "What tasks can you perform?",
+        "How do you work?",
+        "Can you answer questions?",
+        "Can you recommend resources?",
+        "Can you explain code?"
+      ],
+      "responses": [
+        "I can answer questions, explain programming concepts, and recommend learning resources.",
+        "I help with Q&A, coding tips, and general guidance. Ask away!"
+      ]
+    },
+    {
+      "tag": "hours",
+      "patterns": [
+        "What are your hours?",
+        "When are you available?",
+        "Are you online now?",
+        "What time can I reach you?",
+        "Do you have support hours?"
+      ],
+      "responses": [
+        "I'm available 24/7.",
+        "You can reach me anytime — I'm always on."
+      ]
+    },
+    {
+      "tag": "smalltalk_mood",
+      "patterns": [
+        "How are you?",
+        "How's it going?",
+        "How do you feel?",
+        "You good?",
+        "How are things?",
+        "Everything good?"
+      ],
+      "responses": [
+        "Doing great — thanks for asking! How can I help?",
+        "All good here. What can I do for you today?"
+      ]
+    },
+    {
+      "tag": "smalltalk_joke",
+      "patterns": [
+        "Tell me a joke",
+        "Make me laugh",
+        "Got any jokes?",
+        "Something funny",
+        "Say something funny"
+      ],
+      "responses": [
+        "Why do programmers prefer dark mode? Because light attracts bugs!",
+        "There are 10 types of people: those who understand binary and those who don’t."
+      ]
+    },
+    {
+      "tag": "help",
+      "patterns": [
+        "Help",
+        "I need help",
+        "Can you help me?",
+        "What should I do?",
+        "I'm stuck",
+        "Can you assist?",
+        "Show me how",
+        "Instructions please",
+        "Where do I start?"
+      ],
+      "responses": [
+        "Sure — tell me what you're trying to do.",
+        "Happy to help! What are you working on?",
+        "Give me a bit more context and we’ll figure it out."
+      ]
+    },
+    {
+      "tag": "fallback_unknown",
+      "patterns": [
+        "blabla",
+        "???",
+        "I don't get it",
+        "What are you saying",
+        "This makes no sense",
+        "Random text here",
+        "asdfgh",
+        "idk",
+        "What do you mean"
+      ],
+      "responses": [
+        "I’m not sure I understood that. Could you rephrase?",
+        "Sorry, I didn’t catch that — can you clarify?",
+        "Could you give me a bit more detail?"
+      ]
+    }
+  ]
+}
