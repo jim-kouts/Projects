@@ -21,10 +21,17 @@ nltk.download('wordnet')
 
 lemmatizer = WordNetLemmatizer()
 
-json_path = Path(__file__).resolve().parent / "intents_mental.json" #
 
-with open(json_path, "r", encoding="utf-8") as f:
-    intents = json.load(f)
+intent_type = input("Enter the intent type (e.g. 'mental', 'stocks'): ").strip()
+
+json_path = Path(__file__).resolve().parent / f"intents_{intent_type}.json"
+
+try:
+    with open(json_path, "r", encoding="utf-8") as f:
+        intents = json.load(f)
+    print(f"Loaded {json_path.name} successfully.")
+except FileNotFoundError:
+    print(f"File {json_path.name} not found. Please check your input.")
 
 
 words=[]
@@ -48,8 +55,8 @@ words= sorted(set(words))
 classes = sorted(set(classes))
 
 
-pickle.dump(words, open('words.pkl', 'wb'))
-pickle.dump(classes, open('classes.pkl', 'wb'))
+pickle.dump(words, open(f'Chatbot\words_{intent_type}.pkl', 'wb'))
+pickle.dump(classes, open(f'Chatbot\classes_{intent_type}.pkl', 'wb'))
 
 
 
@@ -93,6 +100,6 @@ sgd = SGD(learning_rate = 0.01, decay = 1e-6, momentum=0.9, nesterov=True)
 model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
 
 hist = model.fit(np.array(train_x), np.array(train_y), epochs=200, batch_size=5, verbose=-1)
-model.save('chatbot_model.h5', hist)
+model.save(f'Chatbot\chatbot_model_{intent_type}.h5', hist)
 print('Done')
 

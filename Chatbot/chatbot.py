@@ -14,14 +14,21 @@ from tensorflow.keras.models import load_model
 
 lemmatizer = WordNetLemmatizer()
 
-json_path = Path(__file__).resolve().parent / "intents_mental.json" #
+intent_type = input("Enter the intent type (e.g. 'mental', 'stocks'): ").strip()
 
-with open(json_path, "r", encoding="utf-8") as f:
-    intents = json.load(f)
+json_path = Path(__file__).resolve().parent / f"intents_{intent_type}.json"
 
-words = pickle.load(open('words.pkl', 'rb'))
-classes = pickle.load(open('classes.pkl', 'rb'))
-model = load_model('chatbot_model.h5')
+try:
+    with open(json_path, "r", encoding="utf-8") as f:
+        intents = json.load(f)
+    print(f"Loaded {json_path.name} successfully.")
+except FileNotFoundError:
+    print(f"File {json_path.name} not found. Please check your input.")
+
+
+words = pickle.load(open(f'Chatbot\words_{intent_type}.pkl', 'rb'))
+classes = pickle.load(open(f'Chatbot\classes_{intent_type}.pkl', 'rb'))
+model = load_model(f'Chatbot\chatbot_model_{intent_type}.h5')
 
 
 def clean_up_sentence(sentence):
