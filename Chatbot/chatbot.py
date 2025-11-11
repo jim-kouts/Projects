@@ -14,7 +14,7 @@ from tensorflow.keras.models import load_model
 
 lemmatizer = WordNetLemmatizer()
 
-json_path = Path(__file__).resolve().parent / "intents.json" #
+json_path = Path(__file__).resolve().parent / "intents_mental.json" #
 
 with open(json_path, "r", encoding="utf-8") as f:
     intents = json.load(f)
@@ -45,7 +45,7 @@ def bag_of_words(sentence):
 
 def predict_class(sentence):
     bow = bag_of_words(sentence)
-    res = model.predict(np.array([bow]))[0] 
+    res = model.predict(np.array([bow]), verbose = 0)[0] 
     ERROR_THRESHOLD = 0.25
 
     # filter out predictions below threshold, i = index, r = probability
@@ -62,14 +62,25 @@ def predict_class(sentence):
 
 
 def get_response(intents_list, intents_json):
+    
+    if not intents_list:
+        # try a specific fallback intent if you have one
+        for tag in ("no-response", "neutral-response", "fallback_unknown"):
+            for it in intents_json["intents"]:
+                if it["tag"] == tag and it.get("responses"):
+                    return random.choice(it["responses"])
+        # generic fallback
+        return "I'm not sure I understood that. Could you rephrase?"
+
+
     tag = intents_list[0]['intent']
     list_of_intents = intents_json['intents']
 
     for i in list_of_intents:
-        if i['tag'] == tag:
-            result = random.choice(i['responses'])
-            break
-    return result
+        if i['tag'] == tag and i.get('responses'):
+            return random.choice(i['responses'])
+            
+    return "I'm not sure I understood that. Could you rephrase?"
 
 
 print('Go! Bot is running')

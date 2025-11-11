@@ -21,7 +21,7 @@ nltk.download('wordnet')
 
 lemmatizer = WordNetLemmatizer()
 
-json_path = Path(__file__).resolve().parent / "intents.json" #
+json_path = Path(__file__).resolve().parent / "intents_mental.json" #
 
 with open(json_path, "r", encoding="utf-8") as f:
     intents = json.load(f)
@@ -79,9 +79,12 @@ train_y = list(training[:,1])
 
 model = Sequential()
 
+
 model.add(Dense(128, input_shape=( len(train_x[0]) , ) , activation='relu'))
 model.add(Dropout(0.5))
 model.add(Dense(64,  activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(32,  activation='relu'))
 model.add(Dropout(0.5))
 model.add(Dense(len(train_y[0]),  activation='softmax'))
 
