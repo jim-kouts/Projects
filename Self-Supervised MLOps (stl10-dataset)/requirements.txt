@@ -1,0 +1,15 @@
+# Core ML
+torch
+torchvision
+
+# Data + math
+numpy
+
+# Plotting
+matplotlib
+
+# Metrics (confusion matrix)
+scikit-learn
+
+# Image utilities (usually pulled in by torchvision, but safe to include)
+Pillow
