@@ -4,21 +4,24 @@
 #
 # What is Docker?
 # Docker creates a "container" — an isolated environment that has everything
-# the app needs to run: Python, all libraries, the model, the code.
+# the app needs to run: Python, all libraries, the code.
 # This means the app runs identically on any machine, server or cloud.
 #
 # Key concepts:
 # - Image: The blueprint of the container (built from this file)
 # - Container: A running instance of the image
-# - Layer: Each instruction in this file creates a layer.
-#   Docker caches layers so rebuilding is fast if only code changes.
+# - Layer: Each instruction creates a cached layer for faster rebuilds
+#
+# NOTE: The models/ folder is NOT copied here because:
+# - Model weights are too large (500MB+)
+# - They are not in the GitHub repo
+# - The container downloads them from HuggingFace on first run automatically
 #
 # How to build and run:
 #   docker build -t ocr-invoice-app .
 #   docker run -p 8000:8000 ocr-invoice-app
 
 # ── Base image ─────────────────────────────────────────────────────────────────
-# We start from an official Python 3.11 image (slim = smaller size, no extras)
 FROM python:3.11-slim
 
 # ── System dependencies ────────────────────────────────────────────────────────
@@ -32,28 +35,26 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Working directory ──────────────────────────────────────────────────────────
-# All commands from here on run inside /app inside the container
 WORKDIR /app
 
 # ── Install Python dependencies ────────────────────────────────────────────────
-# We copy requirements.txt first and install before copying the rest of the code.
-# Why? Docker caches this layer — if only your code changes but not requirements,
-# it skips the slow pip install step on rebuild.
+# Copy requirements first — Docker caches this layer.
+# If only code changes, pip install is skipped on rebuild (faster).
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ── Copy project files ─────────────────────────────────────────────────────────
-COPY api/      ./api/
-COPY src/      ./src/
-COPY models/   ./models/
-COPY utils/    ./utils/
+COPY api/   ./api/
+COPY src/   ./src/
+COPY utils/ ./utils/
+
+# NOTE: models/ is intentionally excluded.
+# On first run, the API downloads the base model from HuggingFace automatically.
+# If you want to include a fine-tuned model, mount it as a Docker volume:
+#   docker run -p 8000:8000 -v /your/local/models:/app/models ocr-invoice-app
 
 # ── Expose port ────────────────────────────────────────────────────────────────
-# Tell Docker that the container listens on port 8000
-# This is the same port FastAPI runs on
 EXPOSE 8000
 
 # ── Start command ──────────────────────────────────────────────────────────────
-# This runs when the container starts.
-# We start the FastAPI server directly with uvicorn.
 CMD ["python", "api/main.py"]

@@ -3,9 +3,9 @@
 # Unit tests for utility functions.
 # pytest finds and runs these automatically.
 #
-# Unit test: a small test that checks one specific function works correctly.
-# We test functions that do NOT need the model or dataset loaded —
-# just pure logic functions that we can verify with simple inputs.
+# IMPORTANT: These tests are designed to run in CI without heavy ML packages.
+# We do NOT import torch, transformers, or easyocr here.
+# Instead we test pure logic functions that only need numpy and standard Python.
 
 import sys
 import os
@@ -48,28 +48,56 @@ def test_max_token_length_is_valid():
     assert MAX_TOKEN_LENGTH > 0
 
 
-# ── normalize_bbox tests ───────────────────────────────────────
+def test_all_label_ids_are_integers():
+    """All keys in ID2LABEL must be integers."""
+    for id_ in ID2LABEL.keys():
+        assert isinstance(id_, int), f"Label ID {id_} is not an integer"
 
-# Import the function directly from preprocessing
-from src.preprocessing import normalize_bbox
+
+def test_all_label_names_are_strings():
+    """All values in ID2LABEL must be strings."""
+    for label in ID2LABEL.values():
+        assert isinstance(label, str), f"Label name {label} is not a string"
+
+
+def test_label_ids_are_sequential():
+    """Label IDs must start from 0 and be sequential with no gaps."""
+    ids = sorted(ID2LABEL.keys())
+    assert ids == list(range(len(ids))), \
+        f"Label IDs are not sequential: {ids}"
+
+
+# ── normalize_bbox tests ───────────────────────────────────────
+# We copy the function logic here directly to avoid importing
+# preprocessing.py which imports torch at the top level
+
+def normalize_bbox(bbox, width=1000, height=1000):
+    """Local copy of normalize_bbox for testing without importing torch."""
+    return [
+        max(0, min(1000, int(1000 * bbox[0] / width))),
+        max(0, min(1000, int(1000 * bbox[1] / height))),
+        max(0, min(1000, int(1000 * bbox[2] / width))),
+        max(0, min(1000, int(1000 * bbox[3] / height))),
+    ]
+
 
 def test_normalize_bbox_standard():
     """
-    A box covering half the image width and full height
-    should normalize to [500, 0, 1000, 1000] approximately.
+    A box at half image width and full height
+    should normalize to [500, 0, 1000, 1000].
     """
     result = normalize_bbox([500, 0, 1000, 1000], width=1000, height=1000)
     assert result == [500, 0, 1000, 1000]
 
 
-def test_normalize_bbox_clamps_to_1000():
+def test_normalize_bbox_clamps_max_to_1000():
     """Values above image dimensions should be clamped to 1000."""
     result = normalize_bbox([0, 0, 1500, 1500], width=1000, height=1000)
     assert result[2] == 1000
     assert result[3] == 1000
 
 
-def test_normalize_bbox_clamps_to_0():
+def test_normalize_bbox_clamps_min_to_0():
     """Negative values should be clamped to 0."""
     result = normalize_bbox([-10, -10, 500, 500], width=1000, height=1000)
     assert result[0] == 0
@@ -83,15 +111,68 @@ def test_normalize_bbox_returns_four_values():
     assert all(isinstance(v, int) for v in result)
 
 
-# ── build_structured_output tests ─────────────────────────────
+def test_normalize_bbox_small_image():
+    """Test normalization with a non-square image size."""
+    result = normalize_bbox([100, 50, 200, 100], width=400, height=200)
+    assert result == [250, 250, 500, 500]
 
-from src.inference import build_structured_output
+
+# ── build_structured_output tests ─────────────────────────────
+# We copy the function logic here directly to avoid importing
+# inference.py which imports torch, easyocr, transformers
+
+def build_structured_output(word_label_pairs):
+    """Local copy of build_structured_output for testing without importing torch."""
+    result = {"headers": [], "questions": [], "answers": [], "other": []}
+    current_entity = []
+    current_type = None
+
+    for word, label in word_label_pairs:
+        if label.startswith("B-"):
+            if current_entity and current_type:
+                entity_text = " ".join(current_entity)
+                if current_type == "HEADER":
+                    result["headers"].append(entity_text)
+                elif current_type == "QUESTION":
+                    result["questions"].append(entity_text)
+                elif current_type == "ANSWER":
+                    result["answers"].append(entity_text)
+                else:
+                    result["other"].append(entity_text)
+            current_entity = [word]
+            current_type = label[2:]
+
+        elif label.startswith("I-") and current_type:
+            current_entity.append(word)
+
+        else:
+            if current_entity and current_type:
+                entity_text = " ".join(current_entity)
+                if current_type == "HEADER":
+                    result["headers"].append(entity_text)
+                elif current_type == "QUESTION":
+                    result["questions"].append(entity_text)
+                elif current_type == "ANSWER":
+                    result["answers"].append(entity_text)
+                else:
+                    result["other"].append(entity_text)
+            current_entity = []
+            current_type = None
+
+    if current_entity and current_type:
+        entity_text = " ".join(current_entity)
+        if current_type == "HEADER":
+            result["headers"].append(entity_text)
+        elif current_type == "QUESTION":
+            result["questions"].append(entity_text)
+        elif current_type == "ANSWER":
+            result["answers"].append(entity_text)
+
+    return result
+
 
 def test_structured_output_basic():
-    """
-    Given a simple question/answer pair,
-    output should have one question and one answer.
-    """
+    """Given a simple question/answer pair, output should have one of each."""
     pairs = [
         ("Name:", "B-QUESTION"),
         ("John",  "B-ANSWER"),
@@ -105,7 +186,7 @@ def test_structured_output_basic():
 
 
 def test_structured_output_header():
-    """Header entities should be collected correctly."""
+    """Header entities should be collected and joined correctly."""
     pairs = [
         ("Invoice", "B-HEADER"),
         ("Summary", "I-HEADER"),
@@ -116,7 +197,7 @@ def test_structured_output_header():
 
 
 def test_structured_output_empty():
-    """Empty input should return empty lists."""
+    """Empty input should return empty lists for all fields."""
     result = build_structured_output([])
     assert result["headers"]   == []
     assert result["questions"] == []
@@ -125,8 +206,33 @@ def test_structured_output_empty():
 
 
 def test_structured_output_only_other():
-    """Words labeled O should go to other."""
+    """Words labeled O should not appear in any named field."""
     pairs = [("12345", "O"), ("noise", "O")]
     result = build_structured_output(pairs)
     assert result["questions"] == []
     assert result["answers"]   == []
+    assert result["headers"]   == []
+
+
+def test_structured_output_multiple_questions():
+    """Multiple separate questions should each be a separate entry."""
+    pairs = [
+        ("Date:",    "B-QUESTION"),
+        ("Name:",    "B-QUESTION"),
+        ("Address:", "B-QUESTION"),
+    ]
+    result = build_structured_output(pairs)
+    assert len(result["questions"]) == 3
+
+
+def test_structured_output_question_answer_pairs():
+    """Multiple question/answer pairs should all be captured."""
+    pairs = [
+        ("Date:",  "B-QUESTION"),
+        ("2024",   "B-ANSWER"),
+        ("Name:",  "B-QUESTION"),
+        ("John",   "B-ANSWER"),
+    ]
+    result = build_structured_output(pairs)
+    assert len(result["questions"]) == 2
+    assert len(result["answers"])   == 2
