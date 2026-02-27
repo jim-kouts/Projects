@@ -1,0 +1,105 @@
+# ci.yml
+# =======
+# GitHub Actions CI pipeline for the OCR project inside the Projects repo.
+# Runs automatically on every push or pull request to main branch.
+#
+# Since the OCR project lives inside a subfolder of the Projects repo,
+# all paths point to: "Optical Character Recognition (OCR)/"
+#
+# Jobs:
+#   1. lint    — check code style with flake8
+#   2. test    — run unit tests with pytest
+#   3. docker  — verify Docker image builds correctly
+
+name: OCR Project CI Pipeline
+
+# Trigger: only run when files inside the OCR project folder change
+# This prevents the pipeline from running when you push changes
+# to other projects inside the Projects repo
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "Optical Character Recognition (OCR)/**"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "Optical Character Recognition (OCR)/**"
+
+jobs:
+
+  # ── Job 1: Linting ───────────────────────────────────────────
+  lint:
+    name: Code Quality Check (flake8)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Run flake8 on OCR project
+        # E501 = line too long (ignored — ML code has long lines)
+        # W503 = line break before binary operator (style preference)
+        run: |
+          flake8 \
+            "Optical Character Recognition (OCR)/src/" \
+            "Optical Character Recognition (OCR)/api/" \
+            "Optical Character Recognition (OCR)/utils/" \
+            --max-line-length=120 \
+            --ignore=E501,W503 \
+            --count \
+            --statistics
+
+  # ── Job 2: Unit Tests ────────────────────────────────────────
+  test:
+    name: Unit Tests (pytest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install lightweight test dependencies
+        # We use a separate lightweight requirements file for CI
+        # to avoid installing heavy ML packages (torch, transformers)
+        # which would take 10+ minutes and are not needed for unit tests
+        run: |
+          pip install pytest numpy
+
+      - name: Run unit tests
+        # We run pytest from the repo root so that imports work correctly
+        # PYTHONPATH tells Python where to find the project modules
+        env:
+          PYTHONPATH: "Optical Character Recognition (OCR)"
+        run: |
+          pytest "Optical Character Recognition (OCR)/tests/" -v
+
+  # ── Job 3: Docker Build ──────────────────────────────────────
+  docker:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        # We build from inside the OCR project folder
+        # because the Dockerfile uses relative paths (COPY src/ etc.)
+        run: |
+          docker build \
+            -t ocr-invoice-app \
+            "Optical Character Recognition (OCR)/"
