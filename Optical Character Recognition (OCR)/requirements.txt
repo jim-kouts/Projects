@@ -1,0 +1,28 @@
+# requirements.txt
+# All Python dependencies for the OCR Invoice project
+
+# Deep learning framework
+torch==2.2.0
+
+# Hugging Face — model and tokenizer
+transformers==4.40.0
+datasets==2.19.0
+
+# LayoutLMv3 image processing
+Pillow==10.3.0
+
+# OCR engine
+easyocr==1.7.1
+
+# API framework
+fastapi==0.111.0
+uvicorn==0.29.0
+python-multipart==0.0.9
+
+# Data processing
+numpy==1.26.4
+scikit-learn==1.4.2
+
+# Plotting
+matplotlib==3.8.4
+seaborn==0.13.2

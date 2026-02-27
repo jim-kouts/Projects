@@ -1,0 +1,17 @@
+.venv/
+data/
+indexes/
+models/
+reports/
+predictions/
+__pycache__/
+*.pyc
+xy_outputs/
+*outputs*/
+sim*/
+sweep*/
+*.png*
+
+3D Heisenberg/_L*
+3D Heisenberg/_multiL
+
