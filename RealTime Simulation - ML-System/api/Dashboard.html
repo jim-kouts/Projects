@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ML Stream Monitor</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;500;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:       #0a0c0f;
+    --surface:  #111318;
+    --border:   #1e2230;
+    --accent:   #00e5ff;
+    --fraud:    #ff3b3b;
+    --safe:     #00e676;
+    --muted:    #4a5068;
+    --text:     #c8d0e7;
+    --heading:  #e8eaf6;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* scanline overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.07) 2px,
+      rgba(0,0,0,0.07) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 36px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .logo {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .pulse-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--safe);
+    box-shadow: 0 0 8px var(--safe);
+    animation: pulse 1.6s ease-in-out infinite;
+    display: inline-block;
+    margin-right: 8px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.75); }
+  }
+
+  .live-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--safe);
+    letter-spacing: 0.1em;
+  }
+
+  main {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 18px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--accent);
+  }
+
+  .stat-card.fraud::before { background: var(--fraud); }
+
+  .stat-label {
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--heading);
+    line-height: 1;
+  }
+
+  .stat-card.fraud .stat-value { color: var(--fraud); }
+
+  /* ── Drift Alert ── */
+  #drift-section { display: none; }
+
+  .drift-active-box {
+    background: rgba(255,59,59,0.06);
+    border: 1px solid rgba(255,59,59,0.4);
+    border-left: 3px solid var(--fraud);
+    border-radius: 4px;
+    padding: 16px 22px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    animation: fadeIn 0.4s ease;
+    position: relative;
+  }
+
+  .drift-dismiss {
+    position: absolute;
+    top: 10px; right: 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    padding: 3px 10px;
+    border-radius: 2px;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  .drift-dismiss:hover { border-color: var(--fraud); color: var(--fraud); }
+
+  .drift-icon {
+    font-size: 1.4rem;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .drift-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fraud);
+    margin-bottom: 6px;
+  }
+
+  .drift-detail {
+    font-size: 0.88rem;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .drift-pill {
+    display: inline-block;
+    background: rgba(255,59,59,0.15);
+    border: 1px solid rgba(255,59,59,0.3);
+    border-radius: 2px;
+    padding: 1px 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--fraud);
+    margin: 0 3px;
+  }
+
+  .drift-timestamp {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* ── Drift History ── */
+  .drift-history-wrap {
+    margin-top: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .drift-history-head {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    padding: 8px 16px;
+    background: rgba(0,0,0,0.2);
+    border-bottom: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .drift-history-body {
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  .drift-history-body::-webkit-scrollbar { width: 4px; }
+  .drift-history-body::-webkit-scrollbar-track { background: transparent; }
+  .drift-history-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .drift-history-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text);
+    animation: fadeIn 0.3s ease;
+  }
+
+  .drift-history-row:last-child { border-bottom: none; }
+  .drift-history-row .col-t { color: var(--muted); font-size: 0.7rem; }
+
+  /* ── Table ── */
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  .refresh-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    padding: 6px 14px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .refresh-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  thead th {
+    background: rgba(0,229,255,0.04);
+    border-bottom: 1px solid var(--border);
+    padding: 11px 16px;
+    text-align: left;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+  tbody tr.fraud-row {
+    background: rgba(255,59,59,0.05);
+  }
+
+  tbody tr.fraud-row:hover { background: rgba(255,59,59,0.09); }
+
+  td {
+    padding: 10px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .badge.fraud {
+    background: rgba(255,59,59,0.15);
+    border: 1px solid rgba(255,59,59,0.4);
+    color: var(--fraud);
+  }
+
+  .badge.safe {
+    background: rgba(0,230,118,0.08);
+    border: 1px solid rgba(0,230,118,0.25);
+    color: var(--safe);
+  }
+
+  .badge .dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .badge.fraud .dot { background: var(--fraud); box-shadow: 0 0 4px var(--fraud); }
+  .badge.safe  .dot { background: var(--safe);  box-shadow: 0 0 4px var(--safe); }
+
+  /* empty / error states */
+  .empty-state {
+    text-align: center;
+    padding: 48px 16px;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .row-anim { animation: fadeIn 0.25s ease; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">⬡ Stream Monitor</span>
+  <span><span class="pulse-dot"></span><span class="live-label">Live</span></span>
+</header>
+
+<main>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-label">Total Predictions</div>
+      <div class="stat-value" id="stat-total">—</div>
+    </div>
+    <div class="stat-card fraud">
+      <div class="stat-label">Fraud Detected</div>
+      <div class="stat-value" id="stat-fraud">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Fraud Rate</div>
+      <div class="stat-value" id="stat-rate">—</div>
+    </div>
+  </div>
+
+  <!-- Drift Alert (hidden until drift is detected on Amount) -->
+  <div id="drift-section">
+    <div class="table-header">
+      <span class="section-title">⚠ Drift Alerts — Amount</span>
+      <span id="drift-count" style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.08em;"></span>
+    </div>
+    <div id="drift-active"></div>
+    <div class="drift-history-wrap" id="drift-history-wrap" style="display:none">
+      <div class="drift-history-head">
+        <span>Detected At</span><span>KS Stat</span><span>p-value</span><span>Threshold</span>
+      </div>
+      <div class="drift-history-body" id="drift-history-body"></div>
+    </div>
+  </div>
+
+  <!-- Predictions Table -->
+  <div>
+    <div class="table-header">
+      <span class="section-title">Prediction Feed</span>
+      <button class="refresh-btn" onclick="fetchAll()">↻ Refresh</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Time</th>
+            <th>Amount</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody id="pred-tbody">
+          <tr><td colspan="4" class="empty-state">Waiting for predictions…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const API = "";  // same origin
+
+async function fetchPredictions() {
+  try {
+    const res = await fetch(`${API}/api/predictions`);
+    const data = await res.json();
+
+    if (data.error) {
+      document.getElementById("pred-tbody").innerHTML =
+        `<tr><td colspan="4" class="empty-state">${data.error}</td></tr>`;
+      return;
+    }
+
+    // Stats
+    const total = data.total ?? 0;
+    const fraud = data.fraud_count ?? 0;
+    const rate  = total > 0 ? ((fraud / total) * 100).toFixed(2) + "%" : "0%";
+    document.getElementById("stat-total").textContent = total.toLocaleString();
+    document.getElementById("stat-fraud").textContent = fraud.toLocaleString();
+    document.getElementById("stat-rate").textContent  = rate;
+
+    // Table
+    const tbody = document.getElementById("pred-tbody");
+    if (!data.rows || data.rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="4" class="empty-state">No predictions yet.</td></tr>`;
+      return;
+    }
+
+    const rows = [...data.rows].reverse(); // latest first
+    tbody.innerHTML = rows.map((row, idx) => {
+      const isFraud = row.is_fraud;
+      const badge = isFraud
+        ? `<span class="badge fraud"><span class="dot"></span>FRAUD</span>`
+        : `<span class="badge safe"><span class="dot"></span>Safe</span>`;
+      const time   = row.Time   != null ? Number(row.Time).toFixed(0)   : "—";
+      const amount = row.Amount != null ? "$" + Number(row.Amount).toFixed(2) : "—";
+      return `
+        <tr class="${isFraud ? 'fraud-row' : ''} row-anim">
+          <td>${rows.length - idx}</td>
+          <td>${time}</td>
+          <td>${amount}</td>
+          <td>${badge}</td>
+        </tr>`;
+    }).join("");
+
+  } catch (err) {
+    console.error("Predictions fetch error:", err);
+  }
+}
+
+// Drift history log (in-memory, survives auto-refresh)
+const driftHistory = [];
+let driftDismissed = false;
+
+async function fetchDrift() {
+  try {
+    const res  = await fetch(`${API}/api/drift`);
+    const data = await res.json();
+
+    const section     = document.getElementById("drift-section");
+    const activeBox   = document.getElementById("drift-active");
+    const historyWrap = document.getElementById("drift-history-wrap");
+    const historyBody = document.getElementById("drift-history-body");
+    const countEl     = document.getElementById("drift-count");
+
+    if (data.drift_detected && data.alerts.length) {
+      const a   = data.alerts[0];
+      const now = new Date().toLocaleTimeString();
+
+      // Add to history if not a duplicate of the last entry
+      const last = driftHistory[driftHistory.length - 1];
+      if (!last || last.ks_stat !== a.ks_stat || last.p_value !== a.p_value) {
+        driftHistory.push({ ...a, time: now });
+        driftDismissed = false; // new event — re-show active alert
+      }
+
+      section.style.display = "block";
+      countEl.textContent = `${driftHistory.length} event${driftHistory.length > 1 ? "s" : ""} logged`;
+
+      // Active alert (hidden if user dismissed until new event)
+      if (!driftDismissed) {
+        activeBox.innerHTML = `
+          <div class="drift-active-box">
+            <button class="drift-dismiss" onclick="dismissDrift()">Dismiss</button>
+            <div class="drift-icon">⚡</div>
+            <div>
+              <div class="drift-title">Distribution Drift Detected — ${a.feature}</div>
+              <div class="drift-detail">
+                KS statistic <span class="drift-pill">${a.ks_stat}</span>
+                p-value <span class="drift-pill">${a.p_value}</span>
+                exceeds significance threshold <span class="drift-pill">${a.threshold}</span>
+              </div>
+              <div class="drift-timestamp">Detected at ${now}</div>
+            </div>
+          </div>`;
+      }
+
+      // History table — always visible once we have events
+      if (driftHistory.length > 0) {
+        historyWrap.style.display = "block";
+        historyBody.innerHTML = [...driftHistory].reverse().map(e => `
+          <div class="drift-history-row">
+            <span class="col-t">${e.time}</span>
+            <span>${e.ks_stat}</span>
+            <span>${e.p_value}</span>
+            <span>${e.threshold}</span>
+          </div>`).join("");
+      }
+
+    } else {
+      // No current drift — keep section visible if we have history
+      if (driftHistory.length === 0) {
+        section.style.display = "none";
+      } else {
+        // Clear active alert, keep history
+        if (!driftDismissed) activeBox.innerHTML = "";
+      }
+    }
+
+  } catch (err) {
+    console.error("Drift fetch error:", err);
+  }
+}
+
+function dismissDrift() {
+  driftDismissed = true;
+  document.getElementById("drift-active").innerHTML = "";
+}
+
+async function fetchAll() {
+  await Promise.all([fetchPredictions(), fetchDrift()]);
+}
+
+// Initial load
+fetchAll();
+
+// Auto-refresh every 3 seconds
+setInterval(fetchAll, 3000);
+</script>
+
+</body>
+</html>

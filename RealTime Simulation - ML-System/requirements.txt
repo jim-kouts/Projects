@@ -1,0 +1,17 @@
+# Data
+pandas
+numpy
+
+# Machine Learning
+scikit-learn
+xgboost
+
+# Statistics (drift detection)
+scipy
+
+# Model persistence
+joblib
+
+# API server
+flask
+flask-cors
